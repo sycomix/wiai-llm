@@ -20,8 +20,11 @@ Install below requirements:
 """
 
 
+import os
+os.system("export CUDA_VISIBLE_DEVICES=\"2,3,4,5,6\"")
+
 from langchain import HuggingFacePipeline
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
 import torch
 from langchain import PromptTemplate, LLMChain
 from langchain.memory import ConversationBufferWindowMemory
@@ -29,24 +32,39 @@ from langchain.memory import ConversationBufferWindowMemory
 
 model_name = "tiiuae/falcon-7b-instruct"
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    trust_remote_code=True,
-    torch_dtype=torch.bfloat16,
-    device_map="auto",
-)
+if "falcon-40b-instruct" in model_name:
+    print(f"Loading {model_name}")
+
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, 
+        quantization_config=bnb_config, 
+        trust_remote_code=True
+    )
+    model.config.use_cache = False
+else:
+    # falcon-7b-instruct model
+    print(f"Loading {model_name}")
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        trust_remote_code=True,
+        device_map="auto",
+    )
 
 pipeline = pipeline(
     "text-generation", # task
     model=model,
     tokenizer=tokenizer,
-    torch_dtype=torch.bfloat16,
-    trust_remote_code=True,
     # load_in_4bit=True,
-    device_map="auto",
-    max_length=200,
+    # torch_dtype=torch.bfloat16,
+    max_new_tokens=100,
     do_sample=True,
     top_k=10,
     num_return_sequences=1,
@@ -60,7 +78,7 @@ def user(
     user_message,
     history
 ):
-    history = history + [("Question: " + user_message, None)]
+    history = history + [(user_message, None)]
     return "", history
 
 
@@ -69,9 +87,10 @@ def get_context_from_db(query):
 
 
 def get_llm_chain():
-    template = """
-    You are an intelligent chatbot. Help the following question with brilliant answers.
-    Question: {question}
+    template = """As an intelligent AI assistant, give the precise answer to the following question. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+    Question: ```{question}```
+    
     Answer:"""
 
     prompt = PromptTemplate(
@@ -79,7 +98,7 @@ def get_llm_chain():
         template=template
     )
 
-    memory = ConversationBufferWindowMemory(k=3, return_messages=True, memory_key="chat_history", ai_prefix = "Chatbot")
+    memory = ConversationBufferWindowMemory(k=5, return_messages=True, memory_key="chat_history", ai_prefix="Chatbot")
 
     llm_chain = LLMChain(
         llm=llm,
