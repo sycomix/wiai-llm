@@ -1,0 +1,17 @@
+llama-index==0.6.0.alpha3
+langchain
+deepspeed
+accelerate
+sentencepiece
+bitsandbytes
+torch==2.0.0
+transformers
+gradio==3.27.0
+indic-nlp-library==0.91
+sentence-transformers==2.2.2
+googletrans==3.1.0a0
+openpyxl
+lxml
+seaborn
+einops
+xformers
