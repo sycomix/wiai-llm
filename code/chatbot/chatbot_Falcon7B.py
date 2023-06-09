@@ -1,22 +1,6 @@
 """
 Install below requirements:
-    pip install llama-index==0.6.0.alpha3
-    pip install langchain
-    pip install deepspeed
-    pip install accelerate
-    pip install sentencepiece
-    pip install bitsandbytes
-    pip install torch==2.0.0
-    pip install transformers
-    pip install gradio==3.27.0
-    pip install indic-nlp-library==0.91
-    pip install sentence-transformers==2.2.2
-    pip install googletrans==3.1.0a0
-    pip install openpyxl
-    pip install lxml
-    pip install seaborn
-    pip install einops
-    pip install xformers
+    !pip install -q llama-index==0.6.0.alpha3 langchain deepspeed accelerate sentencepiece bitsandbytes torch==2.0.0 transformers gradio==3.27.0 indic-nlp-library==0.91 sentence-transformers==2.2.2 googletrans==3.1.0a0 openpyxl lxml seaborn einops xformers
 """
 
 

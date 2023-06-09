@@ -1,0 +1,13 @@
+faiss-cpu
+xformers
+einops
+sentence-transformers==2.2.2
+transformers
+llama-index==0.6.0.alpha3
+langchain
+deepspeed
+accelerate
+sentencepiece
+bitsandbytes
+torch==2.0.0
+PyPDF2==3.0.1
