@@ -21,7 +21,8 @@ Install below requirements:
 
 
 import os
-os.system("export CUDA_VISIBLE_DEVICES=\"2,3,4,5,6\"")
+# The more the CUDA visible devices, more the inference speed - as the model gets loaded on all visible devices.
+os.system("export CUDA_VISIBLE_DEVICES=\"4,5,6\"")
 
 from langchain import HuggingFacePipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
@@ -87,7 +88,7 @@ def get_context_from_db(query):
 
 
 def get_llm_chain():
-    template = """As an intelligent AI assistant, give the precise answer to the following question. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+    template = """As an intelligent AI assistant, give the precise answer to the question delimited by triple backticks. If you don't know the answer, just say that you do not know, don't try to make up an answer.
 
     Question: ```{question}```
     
@@ -116,7 +117,7 @@ def get_answer_bot(query):
     result = llm_chain.run(query)
     result = result.strip()
 
-    if "do not know" in result:
+    if "do not know" in result or "don't know" in result:
         return result, ""
 
     return result
@@ -127,7 +128,7 @@ def bot(
 ):
     query = history[-1][0]
     if len(query) <= 1:
-        history[-1][1] = "Hi I'm AI assistant! Here to help you. Could you please elaborate more?"
+        history[-1][1] = "Hi I'm an AI assistant and here to help you! Could you please elaborate more?"
     else:
         result = get_answer_bot(query)
         history[-1][1] = result 
