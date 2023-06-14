@@ -8,4 +8,4 @@ It uses the adapters like LoRA, QLoRA, PEFT to reduce the memory overhead.
 - `source venv/bin/activate`
 - `pip install -r requirements.txt`
 - `export CUDA_VISIBLE_DEVICES=<2,3,4>`  (Replace with your available GPU devices.)
-- `python falcon_peft_inference.py`
+- `python falcon_peft.py`
