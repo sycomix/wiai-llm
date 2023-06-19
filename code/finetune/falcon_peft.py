@@ -8,9 +8,10 @@
 # Reference taken from: https://gist.github.com/pacman100/1731b41f7a90a87b457e8c5415ff1c14
 ########################################################################
 
-
+import os
 from dataclasses import dataclass, field
 from typing import Optional
+from datetime import datetime
 
 import torch
 from datasets import load_dataset
@@ -25,6 +26,9 @@ from transformers import (
 from peft.tuners.lora import LoraLayer
 
 from trl import SFTTrainer
+
+
+os.environ["WANDB__SERVICE_WAIT"] = "300"
 
 
 # Define and parse arguments.
@@ -59,59 +63,84 @@ class ScriptArguments:
         metadata={"help": "The preference dataset to use."},
     )
 
+    data_files: Optional[str] = field(
+        default="Golden_records_grievances_Updated.json",
+        metadata={"help": "Data files to load and model to be fine-tuned on."},
+    )
+
+    output_dir: Optional[str] = field(
+        default="./checkpoints",
+        metadata={"help": "Output directory path where model checkpoints would be saved."},
+    )
+
     use_4bit: Optional[bool] = field(
         default=True,
         metadata={"help": "Activate 4bit precision base model loading"},
     )
+
     use_nested_quant: Optional[bool] = field(
         default=False,
         metadata={"help": "Activate nested quantization for 4bit base models"},
     )
+
     bnb_4bit_compute_dtype: Optional[str] = field(
         default="float16",
         metadata={"help": "Compute dtype for 4bit base models"},
     )
+
     bnb_4bit_quant_type: Optional[str] = field(
         default="nf4",
         metadata={"help": "Quantization type fp4 or nf4"},
     )
+
     num_train_epochs: Optional[int] = field(
         default=1,
         metadata={"help": "The number of training epochs for the reward model."},
     )
+
+    max_steps: int = field(default=1000, metadata={"help": "How many optimizer update steps to take"})
+
     fp16: Optional[bool] = field(
         default=False,
         metadata={"help": "Enables fp16 training."},
     )
+
     bf16: Optional[bool] = field(
         default=False,
         metadata={"help": "Enables bf16 training."},
     )
+
     packing: Optional[bool] = field(
-        default=False,
+        default=True,
         metadata={"help": "Use packing dataset creating."},
     )
+
     gradient_checkpointing: Optional[bool] = field(
         default=True,
         metadata={"help": "Enables gradient checkpointing."},
     )
+
     optim: Optional[str] = field(
         default="paged_adamw_32bit",
         metadata={"help": "The optimizer to use."},
     )
+
     lr_scheduler_type: str = field(
         default="constant",
         metadata={"help": "Learning rate schedule. Constant a bit better than cosine, and has advantage for analysis"},
     )
-    max_steps: int = field(default=1000, metadata={"help": "How many optimizer update steps to take"})
+
     warmup_ratio: float = field(default=0.03, metadata={"help": "Fraction of steps to do a warmup for"})
+
     group_by_length: bool = field(
         default=False,
         metadata={
             "help": "Group sequences into batches with same length. Saves memory and speeds up training considerably."
         },
     )
+
     save_steps: int = field(default=10, metadata={"help": "Save checkpoint every X updates steps."})
+    
     logging_steps: int = field(default=10, metadata={"help": "Log every X updates steps."})
 
 
@@ -161,9 +190,11 @@ def create_and_prepare_model(args):
 
     return model, peft_config, tokenizer
 
+output_dir = f"{script_args.output_dir}_{script_args.model_name.split('/')[-1]}_{datetime.strftime(datetime.now(), '%Y-%m-%d-%H-%M-%S')}"
+print(f"Model checkpoints would be saved at: {output_dir}")
 
 training_arguments = TrainingArguments(
-    output_dir="./falcon_peft_checkpoints",
+    output_dir=output_dir,
     per_device_train_batch_size=script_args.per_device_train_batch_size,
     gradient_accumulation_steps=script_args.gradient_accumulation_steps,
     optim=script_args.optim,
@@ -181,7 +212,9 @@ training_arguments = TrainingArguments(
 
 model, peft_config, tokenizer = create_and_prepare_model(script_args)
 model.config.use_cache = False
-dataset = load_dataset(script_args.dataset_name, split="train")
+data_files = {"train": os.path.join(script_args.dataset_name, script_args.data_files)}
+print(f"data_files to load: {data_files}")
+dataset = load_dataset("json", data_files=data_files, split="train")
 
 
 # Reference from: https://huggingface.co/docs/trl/main/en/sft_trainer#customize-your-prompts-using-packed-dataset
@@ -194,12 +227,12 @@ trainer = SFTTrainer(
     train_dataset=dataset,
     peft_config=peft_config,
     # dataset_text_field="text",
-    packing=True,
     formatting_func=formatting_func,
     max_seq_length=script_args.max_seq_length,
     tokenizer=tokenizer,
     args=training_arguments,
-    # packing=script_args.packing,
+    # packing=True,
+    packing=script_args.packing,
 )
 
 
