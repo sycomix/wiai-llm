@@ -28,6 +28,26 @@ from peft.tuners.lora import LoraLayer
 from trl import SFTTrainer
 
 
+def print_gpu_memory_summary():
+    print(torch.cuda.memory_summary(device=None, abbreviated=False))
+
+
+def clear_gpu_memory():
+    torch.cuda.empty_cache()
+    import gc
+    gc.collect()
+    print_gpu_memory_summary()
+
+
+def get_gpu_device_info():
+    print(f"torch.cuda.is_available() = {torch.cuda.is_available()}")
+    print(f"Device count: {torch.cuda.device_count()}")
+
+
+clear_gpu_memory()
+get_gpu_device_info()
+
+#os.environ['CUDA_VISIBLE_DEVICES'] = "0,1"
 os.environ["WANDB__SERVICE_WAIT"] = "300"
 
 
@@ -139,9 +159,9 @@ class ScriptArguments:
         },
     )
 
-    save_steps: int = field(default=10, metadata={"help": "Save checkpoint every X updates steps."})
+    save_steps: int = field(default=100, metadata={"help": "Save checkpoint every X updates steps."})
     
-    logging_steps: int = field(default=10, metadata={"help": "Log every X updates steps."})
+    logging_steps: int = field(default=100, metadata={"help": "Log every X updates steps."})
 
 
 parser = HfArgumentParser(ScriptArguments)
@@ -188,6 +208,7 @@ def create_and_prepare_model(args):
 
     return model, peft_config, tokenizer
 
+
 output_dir = f"{script_args.output_dir}_{script_args.model_name.split('/')[-1]}_{datetime.strftime(datetime.now(), '%Y-%m-%d-%H-%M-%S')}"
 print(f"Model checkpoints would be saved at: {output_dir}")
 
@@ -203,16 +224,26 @@ training_arguments = TrainingArguments(
     bf16=script_args.bf16,
     max_grad_norm=script_args.max_grad_norm,
     max_steps=script_args.max_steps,
+    num_train_epochs=script_args.num_train_epochs,
     warmup_ratio=script_args.warmup_ratio,
     group_by_length=script_args.group_by_length,
     lr_scheduler_type=script_args.lr_scheduler_type,
 )
 
+print(f"Training arguments:")
+print("="*100)
+print(training_arguments)
+print("="*100)
+
 model, peft_config, tokenizer = create_and_prepare_model(script_args)
 model.config.use_cache = False
-data_files = {"train": os.path.join(script_args.dataset_name, script_args.data_files)}
-print(f"data_files to load: {data_files}")
-dataset = load_dataset("json", data_files=data_files, split="train")
+# Print GPU memory summary
+print_gpu_memory_summary()
+
+# data_files = {"train": os.path.join(script_args.dataset_name, script_args.data_files)}
+# print(f"data_files to load: {data_files}")
+# dataset = load_dataset("json", data_files=data_files, split="train")
+dataset = load_dataset(script_args.dataset_name, split="train")
 
 
 # Reference from: https://huggingface.co/docs/trl/main/en/sft_trainer#customize-your-prompts-using-packed-dataset
@@ -224,12 +255,10 @@ trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
     peft_config=peft_config,
-    # dataset_text_field="text",
     formatting_func=formatting_func,
     max_seq_length=script_args.max_seq_length,
     tokenizer=tokenizer,
     args=training_arguments,
-    # packing=True,
     packing=script_args.packing,
 )
 
