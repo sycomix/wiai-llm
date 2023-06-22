@@ -64,7 +64,7 @@ class ScriptArguments:
     )
 
     data_files: Optional[str] = field(
-        default="Golden_records_grievances_Updated.json",
+        default="openassistant_best_replies_train.jsonl",
         metadata={"help": "Data files to load and model to be fine-tuned on."},
     )
 
@@ -165,10 +165,8 @@ def create_and_prepare_model(args):
             print("Your GPU supports bfloat16, you can accelerate training with the argument --bf16")
             print("=" * 80)
 
-    device_map = {"": 0}
-
     model = AutoModelForCausalLM.from_pretrained(
-        args.model_name, quantization_config=bnb_config, device_map=device_map, trust_remote_code=True
+        args.model_name, quantization_config=bnb_config, device_map="auto", trust_remote_code=True
     )
 
     peft_config = LoraConfig(

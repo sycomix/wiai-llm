@@ -30,10 +30,9 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_use_double_quant=False,
 )
 
-device_map = {"": 0}
 tokenizer = AutoTokenizer.from_pretrained("tiiuae/falcon-7b")
 model = AutoModelForCausalLM.from_pretrained(
-    "tiiuae/falcon-7b", quantization_config=bnb_config, device_map=device_map, trust_remote_code=True
+    "tiiuae/falcon-7b", quantization_config=bnb_config, device_map="auto", trust_remote_code=True
 )
 model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
 # Model checkpoint path. Replace "checkpoint-250" with the latest checkpoint-number directory
