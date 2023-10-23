@@ -230,7 +230,7 @@ training_arguments = TrainingArguments(
     lr_scheduler_type=script_args.lr_scheduler_type,
 )
 
-print(f"Training arguments:")
+print("Training arguments:")
 print("="*100)
 print(training_arguments)
 print("="*100)
@@ -248,8 +248,7 @@ dataset = load_dataset(script_args.dataset_name, split="train")
 
 # Reference from: https://huggingface.co/docs/trl/main/en/sft_trainer#customize-your-prompts-using-packed-dataset
 def formatting_func(example):
-    text = f"### Instruction: {example['instruction']}\n ### Input: {example['input']}\n ### Output: {example['output']}"
-    return text
+    return f"### Instruction: {example['instruction']}\n ### Input: {example['input']}\n ### Output: {example['output']}"
 
 trainer = SFTTrainer(
     model=model,

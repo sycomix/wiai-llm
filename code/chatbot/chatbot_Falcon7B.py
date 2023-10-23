@@ -4,6 +4,7 @@ Install below requirements:
 """
 
 
+
 import os
 # The more the CUDA visible devices, more the inference speed - as the model gets loaded on all visible devices.
 os.system("export CUDA_VISIBLE_DEVICES=\"4,5,6\"")
@@ -19,9 +20,9 @@ model_name = "tiiuae/falcon-7b-instruct"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
-if "falcon-40b-instruct" in model_name:
-    print(f"Loading {model_name}")
+print(f"Loading {model_name}")
 
+if "falcon-40b-instruct" in model_name:
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
@@ -35,8 +36,6 @@ if "falcon-40b-instruct" in model_name:
     )
     model.config.use_cache = False
 else:
-    # falcon-7b-instruct model
-    print(f"Loading {model_name}")
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         trust_remote_code=True,
@@ -85,14 +84,7 @@ def get_llm_chain():
 
     memory = ConversationBufferWindowMemory(k=5, return_messages=True, memory_key="chat_history", ai_prefix="Chatbot")
 
-    llm_chain = LLMChain(
-        llm=llm,
-        prompt=prompt,
-        memory=memory,
-        verbose=False
-    )
-
-    return llm_chain
+    return LLMChain(llm=llm, prompt=prompt, memory=memory, verbose=False)
 
 
 def get_answer_bot(query):
